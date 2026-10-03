@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Derek</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0e0e12; color: #e8e8e8; font-family: -apple-system, system-ui, sans-serif; min-height: 100vh; }
+  header { padding: 28px 20px 8px; text-align: center; }
+  header h1 { font-size: 2rem; letter-spacing: 2px; }
+  header p { color: #888; margin-top: 6px; font-size: .9rem; }
+  .shows { display: flex; gap: 12px; justify-content: center; padding: 18px 20px 6px; flex-wrap: wrap; }
+  .show-btn { background: #1c1c24; border: 2px solid #2c2c38; color: #e8e8e8; padding: 12px 22px; border-radius: 12px; font-size: 1rem; cursor: pointer; }
+  .show-btn.active { border-color: #7c5cff; background: #241f3d; }
+  #player-wrap { max-width: 900px; margin: 18px auto 0; padding: 0 16px; display: none; }
+  #player-wrap.visible { display: block; }
+  #now-playing { font-size: 1.05rem; margin-bottom: 10px; color: #c9bfff; }
+  video { width: 100%; border-radius: 12px; background: #000; max-height: 60vh; }
+  #episodes { max-width: 900px; margin: 0 auto; padding: 16px; }
+  #episodes h2 { font-size: 1.2rem; margin: 8px 4px 12px; }
+  .ep { display: flex; align-items: center; gap: 12px; background: #16161d; border: 1px solid #26262f; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
+  .ep:hover { background: #1e1e28; border-color: #3a3a4a; }
+  .ep.playing { border-color: #7c5cff; background: #201c36; }
+  .ep .num { background: #2a2a36; border-radius: 8px; min-width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #b9aaff; }
+  .ep .title { font-size: .95rem; }
+  footer { text-align: center; color: #555; font-size: .8rem; padding: 30px 16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DEREK</h1>
+  <p>Classic TV, streaming free from the Internet Archive</p>
+</header>
+<div class="shows">
+  <button class="show-btn active" data-show="scifi">Science Fiction Theatre</button>
+  <button class="show-btn" data-show="stooges">The New Three Stooges</button>
+</div>
+<div id="player-wrap">
+  <div id="now-playing"></div>
+  <video id="player" controls playsinline preload="metadata"></video>
+</div>
+<div id="episodes"><h2 id="ep-title"></h2><div id="ep-list"></div></div>
+<footer>All episodes are public domain, streamed from archive.org</footer>
+<script>
+var SHOWS = {
+  scifi: {
+    label: "Science Fiction Theatre (1955)",
+    base: "https://archive.org/download/science-fiction-theatre-season-1/",
+    eps: [
+      "1-01 Beyond.mp4", "1-02 Time Is Just a Place.mp4", "1-03 Out of Nowhere.mp4",
+      "1-04 Y..O..R..D..mp4", "1-05 Stranger in the Desert.mp4", "1-06 No Food for Thought.mp4",
+      "1-07 The Brain of John Emerson.mp4", "1-08 Spider, Inc.mp4", "1-09 Death at 2 A.M..mp4",
+      "1-10 Conversation with an Ape.mp4", "1-11 Marked Danger.mp4", "1-12 Hour of Nightmare.mp4",
+      "1-13 100 Years Young.mp4"
+    ]
+  },
+  stooges: {
+    label: "The New Three Stooges (1965)",
+    base: "https://archive.org/download/thenew3stoogestv/",
+    eps: [
+      "s01e01_The_Little_Old_Bombmaker.mp4", "s01e03_Lets_Shoot_The_Player_Piano_Player.mp4",
+      "s01e05_Safari_So_Good.mp4", "s01e09_Hold_That_Line.mp4",
+      "s01e11_DizzyDoodlers.mp4", "s01e13_Movie_Scars.mp4",
+      "s01e153_The_Chicken_Delivery_Boys.mp4"
+    ]
+  }
+};
+function prettyName(f) {
+  return f.replace(/\.mp4$/, "").replace(/_/g, " ").replace(/^s\d+e\d+\s*/i, "").replace(/^1-\d+\s*/, "").trim() || f;
+}
+var current = "scifi", player = document.getElementById("player");
+function renderShow(key) {
+  current = key;
+  document.querySelectorAll(".show-btn").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.show === key);
+  });
+  var s = SHOWS[key];
+  document.getElementById("ep-title").textContent = s.label + " — " + s.eps.length + " episodes";
+  var list = document.getElementById("ep-list");
+  list.innerHTML = "";
+  s.eps.forEach(function (f, i) {
+    var d = document.createElement("div");
+    d.className = "ep"; d.dataset.idx = i;
+    d.innerHTML = '<div class="num">' + (i + 1) + '</div><div class="title">' + prettyName(f) + "</div>";
+    d.onclick = function () { playEp(i); };
+    list.appendChild(d);
+  });
+}
+function playEp(i) {
+  var s = SHOWS[current], f = s.eps[i];
+  document.querySelectorAll(".ep").forEach(function (e) {
+    e.classList.toggle("playing", +e.dataset.idx === i);
+  });
+  document.getElementById("player-wrap").classList.add("visible");
+  document.getElementById("now-playing").textContent = "Now playing: " + prettyName(f);
+  player.src = s.base + encodeURIComponent(f).replace(/%2F/g, "/");
+  player.play();
+  document.getElementById("player-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+document.querySelectorAll(".show-btn").forEach(function (b) {
+  b.onclick = function () { renderShow(b.dataset.show); };
+});
+renderShow("scifi");
+</script>
+</body>
+</html>
